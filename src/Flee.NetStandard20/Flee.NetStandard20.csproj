@@ -6,6 +6,7 @@
     <SignAssembly>false</SignAssembly>
     <AssemblyOriginatorKeyFile>flee.pfx</AssemblyOriginatorKeyFile>
     <DelaySign>false</DelaySign>
+    <Configurations>Debug;Release;Package</Configurations>
   </PropertyGroup>
 
   <ItemGroup>
@@ -24,4 +25,44 @@
     <PackageReference Include="System.Reflection.Emit.Lightweight" Version="4.3.0" />
   </ItemGroup>
 
+	<PropertyGroup>
+		<!--These values must be present when creating a .nuget package-->
+		<PackageId>GoodLeap.Flee</PackageId>
+		<Description>GoodLeap Fork of Flee (latest bug fixes)</Description>
+		<Copyright></Copyright>
+		<PackageLicenseUrl></PackageLicenseUrl>
+		<PackageProjectUrl>https://github.com/loanpal-sawbridge/flee</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/loanpal-sawbridge/flee</RepositoryUrl>
+		<RepositoryType></RepositoryType>
+		<PackageTags>goodleap flee</PackageTags>
+		<Authors></Authors>
+		<Company></Company>
+		<Product />
+		<PackageReleaseNotes></PackageReleaseNotes>
+		<PackageLicenseExpression></PackageLicenseExpression>
+		<PackageOutputPath>./nupkg</PackageOutputPath>
+	</PropertyGroup>
+	
+
+	<PropertyGroup>
+		<AppOutputBase>$(MSBuildProjectDirectory)\</AppOutputBase>
+		<!-- <PathMap>$(AppOutputBase)=C:\NugetSource\$(AssemblyName)</PathMap> -->
+		<MajorVer>1</MajorVer>
+		<MinorVer>2</MinorVer>
+		<VersionTimestamp Condition="'$(VersionTimestamp)' == ''">$([System.DateTime]::Now.ToString("yyyyMMdd.HHmm00"))</VersionTimestamp>
+		<PackageV>$(MajorVer).$(MinorVer).$(VersionTimestamp)</PackageV>
+		<FullPackageName>$(AssemblyName).$(PackageV).nupkg</FullPackageName>
+	</PropertyGroup>
+	<!--Automatically set the version of the nuget package based on the current date and time -->
+	<Target Name="NugetPackAutoVersioning" AfterTargets="Build" Condition="'$(Configuration)' == 'Package'">
+		<Exec Command="IF EXIST  $(ProjectDir)nuget\*.nupkg del $(ProjectDir)nuget\*.nupkg" />
+		<Exec Command="echo dotnet pack -p:PackageVersion=$(PackageV) --include-symbols --no-build --configuration $(Configuration) --output &quot;$(ProjectDir)nuget " />
+		<Exec Command="dotnet pack -p:PackageVersion=$(PackageV) --include-symbols --no-build --configuration $(Configuration) --output &quot;$(ProjectDir)nuget " />
+	</Target>
+
+	<!--After packaging up the nuget file, deploy it to the goodleap package feed service-->
+	<Target Name="PostPackNugetDeploy" AfterTargets="Pack" Condition="'$(Configuration)' == 'Package'">
+		<Exec Command="dotnet nuget push $(ProjectDir)nuget\$(PackageId).$(PackageV).nupkg --source GitHub-LoanPal-SawBridge  --skip-duplicate" />
+		<Exec Command="dotnet nuget push $(ProjectDir)nuget\$(PackageId).$(PackageV).nupkg --source Local  --skip-duplicate" />
+	</Target>
 </Project>
